@@ -1,36 +1,35 @@
 #!/usr/bin/env node
 
 import {readFile} from "node:fs/promises";
+import {resolve} from "node:path";
 import JSONbig from 'json-bigint';
-import {CB, Payload} from "./types.js";
-import {JSONPath} from "jsonpath-plus";
-import {set} from "jsonpointer";
-import { resolve } from "node:path";
+import {jsonpatch, JSONPathEnvironment, JSONValue} from 'json-p3';
+import {CB} from "./types.js";
 
 const JSONB = JSONbig({useNativeBigInt: true});
+
+const jsonpath_ = new JSONPathEnvironment({strict: false});
 
 declare global {
     var replace: (query: string, cb: CB<any>) => void;
 }
 
-export function replace<T>(data: any, path: string | string[], cb: CB<T>) {
+export function replace(data: any, path: string | string[], cb: CB<JSONValue>) {
     const paths = Array.isArray(path) ? path : [path];
-    const founds: Record<string, any> = {};
+
     for (const path of paths) {
+        const results = jsonpath_.query(path, data);
+        if (results.nodes.length == 0)
+            throw new Error(`Path "${path}" was not found`)
 
-        const results: Record<string, Payload<T, any>> = JSONPath({
-            resultType: 'all',
-            path,
-            json: data,
-        });
-
-        for (const payload of Object.values(results))
-            founds[payload.pointer] = payload.value;
-    }
-
-    for (const [pointer, value] of Object.entries(founds)) {
-        const newValue = cb(value)
-        set(data, pointer, newValue);
+        for (const result of results) {
+            const replacement = cb(result.value);
+            data = jsonpatch.apply([{
+                op: !!replacement ? 'replace' : 'remove',
+                path: result.toPointer().toString(),
+                value: replacement,
+            }], data)
+        }
     }
 }
 

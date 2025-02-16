@@ -44,3 +44,7 @@ Updating them is a repetitive task, more so If these documents are updated often
 
 Most other JSON tools focus more on reporting or extracting data.
 The second-best is JSON Patch, but it changes documents one value at a time.
+
+## Credits
+
+This project is just a fancy wrapper over great [JSON P3](https://jg-rp.github.io/json-p3/).
