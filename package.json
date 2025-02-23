@@ -1,25 +1,30 @@
 {
-  "name": "betterer-json",
-  "version": "0.1.0",
-  "description": "Automated JSON editing tool",
-  "type": "module",
-  "bin": {
-    "bettererjson": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "pnpm run build"
-  },
-  "keywords": [],
-  "author": "Rafał Krupiński <zloto@fastmail.com>",
-  "license": "AGPL-3.0",
-  "devDependencies": {
-    "@types/json-bigint": "^1.0.4",
-    "@types/node": "^22.13.0",
-    "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "json-bigint": "^1.0.0",
-    "json-p3": "^2.1.1"
-  }
+	"name": "betterer-json",
+	"version": "0.1.0",
+	"description": "Automated JSON editing tool",
+	"type": "module",
+	"bin": {
+		"betterer-json": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"prepublishOnly": "pnpm run build"
+	},
+	"keywords": [],
+	"author": "Rafał Krupiński <zloto@fastmail.com>",
+	"license": "AGPL-3.0",
+	"devDependencies": {
+		"@types/json-bigint": "^1.0.4",
+		"@types/node": "^22.13.0",
+		"esbuild": "^0.25.0",
+		"typescript": "^5.7.3"
+	},
+	"dependencies": {
+		"json-bigint": "^1.0.0",
+		"json-p3": "^2.1.1",
+		"yaml": "^2.7.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": ["esbuild"]
+	}
 }

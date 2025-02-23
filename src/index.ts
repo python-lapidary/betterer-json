@@ -1,54 +1,97 @@
 #!/usr/bin/env node
 
-import {readFile} from "node:fs/promises";
-import {resolve} from "node:path";
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import JSONbig from 'json-bigint';
-import {jsonpatch, JSONPathEnvironment, JSONValue} from 'json-p3';
-import {CB} from "./types.js";
+import * as p3 from 'json-p3';
+import * as YAML from 'yaml';
 
-const JSONB = JSONbig({useNativeBigInt: true});
+type CB = (value: p3.JSONValue) => p3.JSONValue;
 
-const jsonpath_ = new JSONPathEnvironment({strict: false});
+const jsonpath = new p3.JSONPathEnvironment({ strict: false });
 
 declare global {
-    var replace: (query: string, cb: CB<any>) => void;
+	var replace: (query: string, cb: CB) => void;
 }
 
-export function replace(data: any, path: string | string[], cb: CB<JSONValue>) {
-    const paths = Array.isArray(path) ? path : [path];
+class Json {
+	private json: {
+		parse: (raw: string) => p3.JSONValue;
+		stringify: (raw: p3.JSONValue, _: any, indent: number) => string;
+	};
 
-    for (const path of paths) {
-        const results = jsonpath_.query(path, data);
-        if (results.nodes.length == 0)
-            throw new Error(`Path "${path}" was not found`)
+	constructor() {
+		this.json = JSONbig({ useNativeBigInt: true });
+	}
 
-        for (const result of results) {
-            const replacement = cb(result.value);
-            data = jsonpatch.apply([{
-                op: !!replacement ? 'replace' : 'remove',
-                path: result.toPointer().toString(),
-                value: replacement,
-            }], data)
-        }
-    }
+	public parse(raw: string) {
+		return this.json.parse(raw);
+	}
+
+	public stringify(value: p3.JSONValue): string {
+		return this.json.stringify(value, undefined, 2);
+	}
 }
 
-async function runUserScript(scriptPath: string, dataPath: string) {
-    const dataRaw = await readFile(dataPath, {encoding: 'utf8'});
-    const data = JSONB.parse(dataRaw);
+class Yaml {
+	public parse(raw: string) {
+		return YAML.parse(raw);
+	}
 
-    function match(query: string, cb: CB<any>) {
-        replace(data, query, cb)
-    }
+	public stringify(value: p3.JSONValue) {
+		return YAML.stringify(value, {
+			indentSeq: false,
+			intAsBigInt: true,
+		});
+	}
+}
 
-    globalThis.replace = match;
-    await import(`file://${resolve(scriptPath)}`);
+export function replace(data: p3.JSONValue, path: string | string[], cb: CB) {
+	const paths = Array.isArray(path) ? path : [path];
+	let data_: p3.JSONValue = data;
 
-    process.stdout.write(JSONB.stringify(data, null, 2));
+	for (const path of paths) {
+		const results = jsonpath.query(path, data_);
+		if (results.nodes.length === 0)
+			throw new Error(`Path "${path}" was not found`);
+
+		// code is removing items, so in case it's removing them from an array, it must iterate in reverse order.
+		for (const result of results.nodes.reverse()) {
+			if (result.value === undefined) continue;
+			const value = cb(result.value);
+			data_ = p3.jsonpatch.apply(
+				[
+					{
+						op: value ? 'replace' : 'remove',
+						path: result.toPointer().toString(),
+						value,
+					},
+				],
+				data_,
+			);
+		}
+	}
+}
+
+async function processContent(scriptPath: string, dataPath: string) {
+	const yamlMode = !dataPath.endsWith('.json');
+	const format = yamlMode ? new Yaml() : new Json();
+
+	const dataRaw = await readFile(dataPath, { encoding: 'utf8' });
+	const data = format.parse(dataRaw);
+
+	function match(query: string, cb: CB) {
+		replace(data, query, cb);
+	}
+
+	globalThis.replace = match;
+	await import(`file://${resolve(scriptPath)}`);
+
+	process.stdout.write(format.stringify(data));
 }
 
 async function main(): Promise<void> {
-    await runUserScript(process.argv[2], process.argv[3]);
+	await processContent(process.argv[2], process.argv[3]);
 }
 
-(await main());
+await main();

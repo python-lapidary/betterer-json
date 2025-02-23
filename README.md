@@ -30,11 +30,20 @@ fix.js
 replace('$..format', value => {
     if(value === 'datetime')
         return 'date-time'
-})
+    else return value;
+});
+```
+
+better.json:
+```json
+{
+  "type": "string",
+  "format": "date-time"
+}
 ```
 
 ```shell
-bettererjson fix.js faulty.json > better.json
+npx betterer-json fix.js faulty.json > better.json
 ```
 
 ## Why
@@ -47,4 +56,4 @@ The second-best is JSON Patch, but it changes documents one value at a time.
 
 ## Credits
 
-This project is just a fancy wrapper over great [JSON P3](https://jg-rp.github.io/json-p3/).
+This project is just a fancy wrapper over a great [JSON P3](https://jg-rp.github.io/json-p3/).
