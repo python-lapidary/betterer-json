@@ -1,6 +1,6 @@
 {
 	"name": "betterer-json",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Automated JSON editing tool",
 	"type": "module",
 	"bin": {
