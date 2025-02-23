@@ -23,8 +23,5 @@
 		"json-p3": "^2.2.1",
 		"yaml": "^2.7.0"
 	},
-	"pnpm": {
-		"onlyBuiltDependencies": ["esbuild"]
-	},
 	"files": ["dist"]
 }
